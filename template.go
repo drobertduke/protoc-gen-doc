@@ -20,6 +20,8 @@ type Template struct {
 	Scalars []*ScalarValue `json:"scalarValueTypes"`
 }
 
+const hiddenKey = "__hidden__"
+
 // NewTemplate creates a Template object from a set of descriptors.
 func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 	files := make([]*File, 0, len(descs))
@@ -51,7 +53,10 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 		// Recursively add nested types from messages
 		var addFromMessage func(*protokit.Descriptor)
 		addFromMessage = func(m *protokit.Descriptor) {
-			file.Messages = append(file.Messages, parseMessage(m))
+			msg := parseMessage(m)
+			if msg != nil {
+				file.Messages = append(file.Messages, parseMessage(m))
+			}
 			for _, e := range m.Enums {
 				file.Enums = append(file.Enums, parseEnum(e))
 			}
@@ -454,7 +459,14 @@ func parseMessage(pm *protokit.Descriptor) *Message {
 	}
 
 	for _, f := range pm.Fields {
-		msg.Fields = append(msg.Fields, parseMessageField(f, pm.GetOneofDecl()))
+		msgField := parseMessageField(f, pm.GetOneofDecl())
+		if msgField != nil {
+			msg.Fields = append(msg.Fields, msgField)
+		}
+	}
+
+	if msg.Description == hiddenKey {
+		return nil
 	}
 
 	return msg
@@ -482,6 +494,10 @@ func parseMessageField(pf *protokit.FieldDescriptor, oneofDecls []*descriptor.On
 		DefaultValue: pf.GetDefaultValue(),
 		Options:      mergeOptions(extractOptions(pf.GetOptions()), extensions.Transform(pf.OptionExtensions)),
 		IsOneof:      pf.OneofIndex != nil,
+	}
+
+	if m.Description == hiddenKey {
+		return nil
 	}
 
 	if m.IsOneof {
@@ -569,6 +585,10 @@ func description(comment string) string {
 	val := strings.TrimLeft(comment, "*/\n ")
 	if strings.HasPrefix(val, "@exclude") {
 		return ""
+	}
+
+	if strings.HasPrefix(val, "@hidden") {
+		return hiddenKey
 	}
 
 	return val

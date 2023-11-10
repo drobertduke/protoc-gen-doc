@@ -17,6 +17,7 @@ var (
 	template    *Template
 	bookingFile *File
 	vehicleFile *File
+	hiddenFile  *File
 
 	cookieTemplate *Template
 	cookieFile     *File
@@ -26,12 +27,13 @@ func TestMain(m *testing.M) {
 	registerTestExtensions()
 
 	set, _ := utils.LoadDescriptorSet("fixtures", "fileset.pb")
-	req := utils.CreateGenRequest(set, "Booking.proto", "Vehicle.proto")
+	req := utils.CreateGenRequest(set, "Booking.proto", "Vehicle.proto", "Hidden.proto")
 	result := protokit.ParseCodeGenRequest(req)
 
 	template = NewTemplate(result)
 	bookingFile = template.Files[0]
 	vehicleFile = template.Files[1]
+	hiddenFile = template.Files[2]
 
 	set, _ = utils.LoadDescriptorSet("fixtures", "cookie.pb")
 	req = utils.CreateGenRequest(set, "Cookie.proto")
@@ -125,7 +127,7 @@ func registerTestExtensions() {
 }
 
 func TestTemplateProperties(t *testing.T) {
-	require.Len(t, template.Files, 2)
+	require.Len(t, template.Files, 3)
 }
 
 func TestFileProperties(t *testing.T) {
@@ -434,6 +436,16 @@ func TestExcludedComments(t *testing.T) {
 
 	// just checking that it doesn't exclude everything
 	require.Equal(t, "the id of this message.", findField("id", message).Description)
+}
+
+func TestHiddenFields(t *testing.T) {
+	hiddenMessage := findMessage("HiddenStatus", hiddenFile)
+	require.Nil(t, hiddenMessage)
+	message := findMessage("HiddenMessage", hiddenFile)
+	require.Nil(t, findField("status_code", message))
+
+	// just checking that it doesn't exclude everything
+	require.Equal(t, "ID of booked vehicle.", findField("vehicle_id", message).Description)
 }
 
 func findService(name string, f *File) *Service {
