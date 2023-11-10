@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	paraPattern         = regexp.MustCompile(`(\n|\r|\r\n)\s*`)
+	paraPattern         = regexp.MustCompile(`(\n|\r|\r\n)`)
 	spacePattern        = regexp.MustCompile("( )+")
 	multiNewlinePattern = regexp.MustCompile(`(\r\n|\r|\n){2,}`)
 	specialCharsPattern = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
@@ -17,7 +17,7 @@ var (
 // PFilter splits the content by new lines and wraps each one in a <p> tag.
 func PFilter(content string) template.HTML {
 	paragraphs := paraPattern.Split(content, -1)
-	return template.HTML(fmt.Sprintf("<p>%s</p>", strings.Join(paragraphs, "</p><p>")))
+	return template.HTML(fmt.Sprintf("<div>%s</div>", strings.Join(paragraphs, "</div><div>")))
 }
 
 // ParaFilter splits the content by new lines and wraps each one in a <para> tag.

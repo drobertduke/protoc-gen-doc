@@ -58,8 +58,13 @@
       }
 
       td p {
+        white-space: pre;
         text-indent: 1em;
         margin: 0;
+      }
+
+      td div {
+        white-space: pre;
       }
 
       td p:nth-child(1) {
@@ -226,7 +231,7 @@
                   <td>{{.Name}}</td>
                   <td><a href="#{{.FullType}}">{{.LongType}}</a></td>
                   <td>{{.Label}}</td>
-                  <td><p>{{if (index .Options "deprecated"|default false)}}<strong>Deprecated.</strong> {{end}}{{.Description}} {{if .DefaultValue}}Default: {{.DefaultValue}}{{end}}</p></td>
+                  <td><p>{{if (index .Options "deprecated"|default false)}}<strong>Deprecated.</strong> {{end}}{{p .Description}} {{if .DefaultValue}}Default: {{.DefaultValue}}{{end}}</p></td>
                 </tr>
               {{end}}
             </tbody>
@@ -294,7 +299,7 @@
                   <td><a href="#{{.FullType}}">{{.LongType}}</a></td>
                   <td><a href="#{{.ContainingFullType}}">{{.ContainingLongType}}</a></td>
                   <td>{{.Number}}</td>
-                  <td><p>{{.Description}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}}</p></td>
+                  <td><p>{{p .Description}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}}</p></td>
                 </tr>
               {{end}}
             </tbody>
@@ -314,7 +319,7 @@
               <tr>
                 <td>{{.Name}}</td>
                 <td>{{.Number}}</td>
-                <td><p>{{.Description}}</p></td>
+                <td><p>{{p .Description}}</p></td>
               </tr>
             {{end}}
           </tbody>
@@ -334,7 +339,7 @@
                 <td><a href="#{{.FullType}}">{{.LongType}}</a></td>
                 <td><a href="#{{.ContainingFullType}}">{{.ContainingLongType}}</a></td>
                 <td>{{.Number}}</td>
-                <td><p>{{.Description}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}}</p></td>
+                <td><p>{{p .Description}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}}</p></td>
               </tr>
             {{end}}
           </tbody>
@@ -354,7 +359,7 @@
                 <td>{{.Name}}</td>
                 <td><a href="#{{.RequestFullType}}">{{.RequestLongType}}</a>{{if .RequestStreaming}} stream{{end}}</td>
                 <td><a href="#{{.ResponseFullType}}">{{.ResponseLongType}}</a>{{if .ResponseStreaming}} stream{{end}}</td>
-                <td><p>{{.Description}}</p></td>
+                <td><p>{{p .Description}}</p></td>
               </tr>
             {{end}}
           </tbody>
