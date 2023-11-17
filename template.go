@@ -43,11 +43,17 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 		}
 
 		for _, e := range f.Enums {
-			file.Enums = append(file.Enums, parseEnum(e))
+			parsed := parseEnum(e)
+			if parsed != nil {
+				file.Enums = append(file.Enums, parsed)
+			}
 		}
 
 		for _, e := range f.Extensions {
-			file.Extensions = append(file.Extensions, parseFileExtension(e))
+			parsed := parseFileExtension(e)
+			if parsed != nil {
+				file.Extensions = append(file.Extensions, parsed)
+			}
 		}
 
 		// Recursively add nested types from messages
@@ -55,10 +61,13 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 		addFromMessage = func(m *protokit.Descriptor) {
 			msg := parseMessage(m)
 			if msg != nil {
-				file.Messages = append(file.Messages, parseMessage(m))
+				file.Messages = append(file.Messages, msg)
 			}
 			for _, e := range m.Enums {
-				file.Enums = append(file.Enums, parseEnum(e))
+				parsed := parseEnum(e)
+				if parsed != nil {
+					file.Enums = append(file.Enums, parsed)
+				}
 			}
 			for _, n := range m.Messages {
 				addFromMessage(n)
@@ -69,7 +78,34 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 		}
 
 		for _, s := range f.Services {
-			file.Services = append(file.Services, parseService(s))
+			parsed := parseService(s)
+			if parsed != nil {
+				file.Services = append(file.Services, parsed)
+			}
+		}
+
+		// Skip files that don't have any enums, messages, or services
+		fileHasContent := false
+		for _, m := range file.Messages {
+			if m != nil {
+				fileHasContent = true
+				break
+			}
+		}
+		for _, e := range file.Enums {
+			if e != nil {
+				fileHasContent = true
+				break
+			}
+		}
+		for _, s := range file.Services {
+			if s != nil {
+				fileHasContent = true
+				break
+			}
+		}
+		if !fileHasContent {
+			continue
 		}
 
 		sort.Sort(file.Enums)
@@ -408,13 +444,21 @@ func parseEnum(pe *protokit.EnumDescriptor) *Enum {
 		Options:     mergeOptions(extractOptions(pe.GetOptions()), extensions.Transform(pe.OptionExtensions)),
 	}
 
+	if enum.Description == hiddenKey {
+		return nil
+	}
+
 	for _, val := range pe.GetValues() {
-		enum.Values = append(enum.Values, &EnumValue{
+		enumValue := &EnumValue{
 			Name:        val.GetName(),
 			Number:      fmt.Sprint(val.GetNumber()),
 			Description: description(val.GetComments().String()),
 			Options:     mergeOptions(extractOptions(val.GetOptions()), extensions.Transform(val.OptionExtensions)),
-		})
+		}
+		if enumValue.Description == hiddenKey {
+			continue
+		}
+		enum.Values = append(enum.Values, enumValue)
 	}
 
 	return enum
@@ -423,7 +467,7 @@ func parseEnum(pe *protokit.EnumDescriptor) *Enum {
 func parseFileExtension(pe *protokit.ExtensionDescriptor) *FileExtension {
 	t, lt, ft := parseType(pe)
 
-	return &FileExtension{
+	ext := &FileExtension{
 		Name:               pe.GetName(),
 		LongName:           pe.GetLongName(),
 		FullName:           pe.GetFullName(),
@@ -438,6 +482,10 @@ func parseFileExtension(pe *protokit.ExtensionDescriptor) *FileExtension {
 		ContainingLongType: strings.TrimPrefix(pe.GetExtendee(), "."+pe.GetPackage()+"."),
 		ContainingFullType: strings.TrimPrefix(pe.GetExtendee(), "."),
 	}
+	if ext.Description == hiddenKey {
+		return nil
+	}
+	return ext
 }
 
 func parseMessage(pm *protokit.Descriptor) *Message {
@@ -525,6 +573,10 @@ func parseService(ps *protokit.ServiceDescriptor) *Service {
 		FullName:    ps.GetFullName(),
 		Description: description(ps.GetComments().String()),
 		Options:     mergeOptions(extractOptions(ps.GetOptions()), extensions.Transform(ps.OptionExtensions)),
+	}
+
+	if service.Description == hiddenKey {
+		return nil
 	}
 
 	for _, sm := range ps.Methods {
